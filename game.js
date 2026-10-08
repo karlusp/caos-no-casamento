@@ -1669,7 +1669,7 @@ if (window.TOQUE) {
       [4, "TRIPÉ", "300 PONTOS"], [0, "PEÇA DO CHEFE", "1000 PONTOS. APANHA-A PARA PASSAR DE NÍVEL"]];
     rows.forEach(([idx, nome, desc], k) => {
       const y = 34 + k * 24;
-      ic(idx, 22, y - 4, 1.5);
+      ic(nome === "PEÇA DO CHEFE" ? PIECES[(t >> 5) % PIECES.length] : idx, 22, y - 4, 1.5);   // a peça do chefe muda: são as 6 peças
       text(nome, 54, y - 2, "#ffe27a", 1, "left"); text(desc, 54, y + 9, "#fff", 1, "left");
     });
     ctx.fillStyle = "rgba(10,6,24,.8)"; ctx.fillRect(10, 156, W - 20, 44);
