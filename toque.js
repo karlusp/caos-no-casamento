@@ -88,6 +88,11 @@
   // ---- mostrar os botões certos consoante a fase do jogo ----
   function modo() {
     const p = typeof phase !== "undefined" ? phase : "";
+    if (p === "play" && typeof paused !== "undefined" && paused) {   // pausa: o toque escolhe uma opção do menu
+      const r = cv.getBoundingClientRect();
+      window.__tapP = { x: (e.clientX - r.left) / r.width * VW - OX, y: (e.clientY - r.top) / r.height * VH - OY };
+      return;
+    }
     const jogo = p === "play", menu = p === "title" || p === "select" || p === "gameover" || p === "iniciais";
     btns.forEach(b => {
       const m = b.dataset.modo; b.style.display = (m.includes("j") && jogo) || (m.includes("m") && menu) ? "flex" : "none";

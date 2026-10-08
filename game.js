@@ -1890,21 +1890,25 @@ function render() {
       drawHUD();
       if (paused) {
         const pm = menuInput(); pauseT++;
-        const opcoes = window.TOQUE ? ["CONTINUAR"] : ["CONTINUAR", "SAIR DO JOGO"];
+        const opcoes = ["CONTINUAR", window.TOQUE && pauseSel === 1 ? "TOCA DE NOVO: SAIR" : "SAIR DO JOGO"];
+        const sair = () => { paused = false; pauseSel = 0; music("titulo"); setPhase("title"); };
         if (pm.up || pm.down) { pauseSel = (pauseSel + (pm.down ? 1 : opcoes.length - 1)) % opcoes.length; sfx("blip", .3); }
         ctx.fillStyle = "rgba(10,6,24,.62)"; ctx.fillRect(-OX, -OY, VW, VH);
-        const ph = window.TOQUE ? 62 : 86;
-        ctx.fillStyle = "rgba(10,6,24,.85)"; ctx.fillRect(W / 2 - 90, 70, 180, ph); ctx.strokeStyle = "#ffe27a"; ctx.lineWidth = 1; ctx.strokeRect(W / 2 - 89.5, 70.5, 179, ph - 1);
-        text("PAUSA", W / 2, 80, "#ffe27a", 3, "center");
-        if (window.TOQUE) text("TOCA EM II PARA CONTINUAR", W / 2, 114, "#c9c0e8", 1, "center");
-        else {
-          opcoes.forEach((o, k) => text((k === pauseSel ? "> " : "") + o, W / 2, 112 + k * 14, k === pauseSel ? "#ffe27a" : "#c9c0e8", 1, "center"));
-          text("ESC: CONTINUAR", W / 2, 142, "#6a5a9a", 1, "center");
-          if (pm.ok && pauseT > 8) {
-            if (pauseSel === 0) paused = false;
-            else { paused = false; pauseSel = 0; music("titulo"); setPhase("title"); }
-          }
+        ctx.fillStyle = "rgba(10,6,24,.85)"; ctx.fillRect(W / 2 - 100, 62, 200, 100); ctx.strokeStyle = "#ffe27a"; ctx.lineWidth = 1; ctx.strokeRect(W / 2 - 99.5, 62.5, 199, 99);
+        text("PAUSA", W / 2, 70, "#ffe27a", 3, "center");
+        opcoes.forEach((o, k) => {
+          const y = 104 + k * 24, sel = k === pauseSel;
+          if (window.TOQUE) { ctx.fillStyle = sel ? "#4a3a8a" : "#2a2058"; ctx.fillRect(W / 2 - 84, y - 5, 168, 20); ctx.strokeStyle = sel ? "#ffe27a" : "#4a3a8a"; ctx.strokeRect(W / 2 - 83.5, y - 4.5, 167, 19); }
+          text((!window.TOQUE && sel ? "> " : "") + o, W / 2, y, sel ? "#ffe27a" : "#c9c0e8", 1, "center");
+        });
+        if (!window.TOQUE) text("ESC: CONTINUAR", W / 2, 150, "#6a5a9a", 1, "center");
+        const tp = window.__tapP; window.__tapP = null;
+        if (tp && pauseT > 8) {   // toque: toca numa opção
+          const k = tp.y >= 99 && tp.y < 123 ? 0 : tp.y >= 123 && tp.y < 147 ? 1 : -1;
+          if (k === 0) { paused = false; pauseSel = 0; }
+          else if (k === 1) { if (pauseSel === 1) sair(); else { pauseSel = 1; sfx("blip", .3); } }
         }
+        if (!window.TOQUE && pm.ok && pauseT > 8) { if (pauseSel === 0) paused = false; else sair(); }
         if (pm.back && !window.TOQUE && pauseT > 8) { paused = false; pauseSel = 0; }
       }
       break;
