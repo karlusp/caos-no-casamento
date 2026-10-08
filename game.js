@@ -1848,7 +1848,7 @@ function drawBoot() {
     return;
   }
   text("CARLOS & FRANCISCO", W / 2, 124, "#fff", 1, "center");
-  text("VERSÃO " + (window.VERSAO || "dev"), W - 6, H - 12, "#6a5a9a", 1, "right");
+  text("BETA " + (window.VERSAO || "dev"), W - 6, H - 12, "#6a5a9a", 1, "right");
   if ((phaseT >> 5) & 1) text("PRIME ENTER PARA COMEÇAR", W / 2, 160, "#ffe27a", 1, "center");
   if (edge.Enter || edge.Space || padState(0).start) {
     sfx("start", .5);
