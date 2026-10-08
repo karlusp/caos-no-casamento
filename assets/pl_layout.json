@@ -1,0 +1,1 @@
+{"carlos": {"idle": [0, 3], "run": [4, 11], "jump": [12, 20], "attack": [21, 29], "dash": [30, 35], "hurt": [36, 40]}, "francisco": {"idle": [0, 3], "run": [4, 11], "jump": [12, 20], "attack": [21, 29], "flash": [30, 36], "hurt": [37, 41], "selfie": [42, 50]}}
