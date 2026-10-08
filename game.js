@@ -1651,15 +1651,15 @@ function drawRegras() {
 if (window.TOQUE) {
       text("CONTROLOS NO ECRÃ", W / 2, 112, "#ffe27a", 1, "center");
       const bot = (cx, cy, lab) => {   // botão redondo como os do ecrã tátil
-        ctx.beginPath(); ctx.arc(cx, cy, 9, 0, 7); ctx.fillStyle = "rgba(255,255,255,.16)"; ctx.fill(); ctx.lineWidth = 1.5; ctx.strokeStyle = "rgba(255,255,255,.7)"; ctx.stroke();
+        ctx.beginPath(); ctx.arc(cx, cy, 8, 0, 7); ctx.fillStyle = "rgba(255,255,255,.16)"; ctx.fill(); ctx.lineWidth = 1.5; ctx.strokeStyle = "rgba(255,255,255,.7)"; ctx.stroke();
         ctx.fillStyle = "#fff";
-        if (lab === "<") { ctx.beginPath(); ctx.moveTo(cx - 4, cy); ctx.lineTo(cx + 3, cy - 5); ctx.lineTo(cx + 3, cy + 5); ctx.fill(); }
-        else if (lab === ">") { ctx.beginPath(); ctx.moveTo(cx + 4, cy); ctx.lineTo(cx - 3, cy - 5); ctx.lineTo(cx - 3, cy + 5); ctx.fill(); }
-        else text(lab, cx, cy - 3, "#fff", 1, "center");
+        if (lab === "<") { ctx.beginPath(); ctx.moveTo(cx - 4, cy); ctx.lineTo(cx + 3, cy - 4.5); ctx.lineTo(cx + 3, cy + 4.5); ctx.fill(); }
+        else if (lab === ">") { ctx.beginPath(); ctx.moveTo(cx + 4, cy); ctx.lineTo(cx - 3, cy - 4.5); ctx.lineTo(cx - 3, cy + 4.5); ctx.fill(); }
+        else text(lab, cx, cy - 5.5, "#fff", 1, "center", false);   // letra centrada no círculo (sem sombra)
       };
       const x0 = W / 2 - 120;
-      bot(x0, 140, "<"); bot(x0 + 24, 140, ">"); text("ANDAR (BOTÕES À ESQUERDA)", x0 + 48, 137, "#fff", 1, "left");
-      [["A", "SALTAR"], ["B", "GOLPE"], ["C", "ESPECIAL (GASTA UMA BATERIA)"]].forEach(([k, w], n) => { bot(x0 + 12, 162 + n * 22 - 6, k); text(w, x0 + 48, 159 + n * 22 - 6, "#fff", 1, "left"); });
+      bot(x0, 132, "<"); bot(x0 + 22, 132, ">"); text("ANDAR (BOTÕES À ESQUERDA)", x0 + 44, 128, "#fff", 1, "left");
+      [["A", "SALTAR"], ["B", "GOLPE"], ["C", "ESPECIAL (GASTA UMA BATERIA)"]].forEach(([k, w], n) => { const cy = 153 + n * 20; bot(x0 + 11, cy, k); text(w, x0 + 44, cy - 4, "#fff", 1, "left"); });
     } else {
         col(14, "JOGADOR 1", [[["<", ">"], "MOVER"], [["Z"], "SALTAR"], [["X"], "GOLPE"], [["C"], "ESPECIAL"]], "#ffe27a");
       col(206, "JOGADOR 2", [[["A", "D"], "MOVER"], [["W"], "SALTAR"], [["F"], "GOLPE"], [["G"], "ESPECIAL"]], "#9be59b");
