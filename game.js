@@ -1115,7 +1115,8 @@ function balaoMede(txt) {
   if (cur) ls.push(cur);
   return { ls, w: Math.max(...ls.map(l => l.length)) * 7 + 8, h: ls.length * 12 + 4 };
 }
-const balaoKind = t => /!\s*$/.test(t) ? "grito" : /\.\.\.\s*$/.test(t) ? "pensa" : "fala";
+// "grito" (borda em pontas) só para gritos a sério: "!!" ou exclamações curtas (NA RAÇA!, GORDO!, SELFIE!); frases longas com "!" ficam em balão normal
+const balaoKind = t => /!!\s*$/.test(t) || (/!\s*$/.test(t) && t.replace(/[!\s]+$/, "").length <= 12) ? "grito" : /\.\.\.\s*$/.test(t) ? "pensa" : "fala";
 function balaoCaixa(x, y, w, h, fill, line, square) {
   const c = square ? 0 : 1;
   ctx.fillStyle = line; ctx.fillRect(x - 1, y - 1 + c, w + 2, h + 2 - 2 * c); ctx.fillRect(x - 1 + c, y - 1, w + 2 - 2 * c, h + 2);
