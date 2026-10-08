@@ -24,6 +24,13 @@
   setInterval(() => { try { bctx.drawImage(cv, 0, 0, 64, 32); } catch (e) { /* ignora */ } }, 80);
   document.addEventListener("contextmenu", e => e.preventDefault());
   document.addEventListener("gesturestart", e => e.preventDefault());
+  // iPad/iPhone (Safari ignora user-scalable=no): sem zoom por toque duplo, pinça ou arrastar
+  ["gesturechange", "gestureend"].forEach(ev => document.addEventListener(ev, e => e.preventDefault()));
+  document.addEventListener("touchstart", e => { if (e.touches.length > 1 || !(e.target.closest && e.target.closest(".b"))) e.preventDefault(); }, { passive: false });
+  document.addEventListener("touchmove", e => e.preventDefault(), { passive: false });
+  let ultimoToque = 0;
+  document.addEventListener("touchend", e => { const t = Date.now(); if (t - ultimoToque < 400) e.preventDefault(); ultimoToque = t; }, { passive: false });
+  document.addEventListener("dblclick", e => e.preventDefault());
   // ---- ecrã inteiro + horizontal no primeiro toque ----
   let fs = false;
   function ecraInteiro() {
