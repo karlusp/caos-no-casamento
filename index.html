@@ -25,6 +25,12 @@
 <script src="versao.js"></script>
 <script src="game.js"></script>
 <script src="toque.js"></script>
-<script>if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(function () {});</script>
+<script>
+if ("serviceWorker" in navigator) {
+  var tinha = !!navigator.serviceWorker.controller, recarregou = false;
+  navigator.serviceWorker.addEventListener("controllerchange", function () { if (tinha && !recarregou) { recarregou = true; location.reload(); } });
+  navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then(function (r) { r.update(); }).catch(function () {});
+}
+</script>
 </body>
 </html>

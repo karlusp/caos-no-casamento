@@ -1468,7 +1468,7 @@ function drawSelect() {
     const x = 66 + i * 160, sel = selIdx === i;
     ctx.fillStyle = sel ? "#4a3a8a" : "#2a2058"; ctx.fillRect(x, 24, 112, 148);
     ctx.strokeStyle = sel ? "#ffe27a" : "#4a3a8a"; ctx.lineWidth = 2; ctx.strokeRect(x + 1, 25, 110, 146);
-    if (LAT[ch]) spr(IMG[LAT[ch].img], (sel ? 4 + ((phaseT >> 3) % 8) : 0) * CELLL, 0, CELLL, CELLL, x + 56 - 64, 36, false, 1, 0, 1.6);
+    if (LAT[ch]) spr(IMG[LAT[ch].img], (sel ? 4 + ((phaseT >> 3) % 8) : 0) * CELLL, 0, CELLL, CELLL, x + 56 - 80, 11, false, 1, 0, 2);   // escala inteira (2): pixéis todos do mesmo tamanho
     else spr(IMG[ch], sel ? ((phaseT >> 4) & 1) * 40 : 0, 0, 40, 64, x + 56 - 40, 40, false, 1, 0, 2);
     text(CHAR[ch].name, x + 56, 28, sel ? "#ffe27a" : "#c9c0e8", 1, "center");
   });
@@ -1892,9 +1892,10 @@ function render() {
       drawHUD();
       if (paused) {
         const pm = menuInput(); pauseT++;
-        const opcoes = ["CONTINUAR", window.TOQUE && pauseSel === 1 ? "TOCA DE NOVO: SAIR" : "SAIR DO JOGO"];
+        const opcoes = ["CONTINUAR", "SAIR DO JOGO"];
         const sair = () => { paused = false; pauseSel = 0; music("titulo"); setPhase("title"); };
-        if (pm.up || pm.down) { pauseSel = (pauseSel + (pm.down ? 1 : opcoes.length - 1)) % opcoes.length; sfx("blip", .3); }
+        const mov = pm.down || pm.right ? 1 : pm.up || pm.left ? -1 : 0;   // setas ◄ ► (botões do ecrã) também escolhem
+        if (mov) { pauseSel = (pauseSel + mov + opcoes.length) % opcoes.length; sfx("blip", .3); }
         ctx.fillStyle = "rgba(10,6,24,.62)"; ctx.fillRect(-OX, -OY, VW, VH);
         ctx.fillStyle = "rgba(10,6,24,.85)"; ctx.fillRect(W / 2 - 100, 62, 200, 100); ctx.strokeStyle = "#ffe27a"; ctx.lineWidth = 1; ctx.strokeRect(W / 2 - 99.5, 62.5, 199, 99);
         text("PAUSA", W / 2, 70, "#ffe27a", 3, "center");
@@ -1903,14 +1904,14 @@ function render() {
           if (window.TOQUE) { ctx.fillStyle = sel ? "#4a3a8a" : "#2a2058"; ctx.fillRect(W / 2 - 84, y - 5, 168, 20); ctx.strokeStyle = sel ? "#ffe27a" : "#4a3a8a"; ctx.strokeRect(W / 2 - 83.5, y - 4.5, 167, 19); }
           text((!window.TOQUE && sel ? "> " : "") + o, W / 2, y, sel ? "#ffe27a" : "#c9c0e8", 1, "center");
         });
-        if (!window.TOQUE) text("ESC: CONTINUAR", W / 2, 150, "#6a5a9a", 1, "center");
+        text(window.TOQUE ? "< > ESCOLHE   B: CONFIRMAR" : "ESC: CONTINUAR", W / 2, 150, "#6a5a9a", 1, "center");
         const tp = window.__tapP; window.__tapP = null;
         if (tp && pauseT > 8) {   // toque: toca numa opção
           const k = tp.y >= 99 && tp.y < 123 ? 0 : tp.y >= 123 && tp.y < 147 ? 1 : -1;
           if (k === 0) { paused = false; pauseSel = 0; }
-          else if (k === 1) { if (pauseSel === 1) sair(); else { pauseSel = 1; sfx("blip", .3); } }
+          else if (k === 1) { if (pauseSel === 1) sair(); else { pauseSel = 1; sfx("blip", .3); } }   // toque: 1.º marca, 2.º sai
         }
-        if (!window.TOQUE && pm.ok && pauseT > 8) { if (pauseSel === 0) paused = false; else sair(); }
+        if (pm.ok && pauseT > 8) { if (pauseSel === 0) paused = false; else sair(); }   // Enter / B
         if (pm.back && !window.TOQUE && pauseT > 8) { paused = false; pauseSel = 0; }
       }
       break;
