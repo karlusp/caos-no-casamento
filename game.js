@@ -106,20 +106,26 @@ const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } ca
 /* ---------------- escala / CRT ---------------- */
 let CRT_KK = 1;
 let crtMode = lsGet("caos_crt", 1) === 0 ? 0 : 1;   // só há "sem linhas" e "linhas"
+// area visivel real (no iPad/Safari o innerHeight engana quando as barras do browser mudam)
+const vpW = () => Math.round((window.visualViewport && visualViewport.width) || innerWidth);
+const vpH = () => Math.round((window.visualViewport && visualViewport.height) || innerHeight);
 function resize() {
-  const asp = innerWidth > 0 && innerHeight > 0 ? innerWidth / innerHeight : W / H;
+  const asp = vpW() > 0 && vpH() > 0 ? vpW() / vpH() : W / H;
   let vw = Math.round(Math.min(VWMAX, Math.max(W, H * asp)));
   vw -= vw % 2;
   let vh = asp < W / H ? Math.round(Math.min(VHMAX, Math.max(H, W / asp))) : H;
   vh -= vh % 2;
   if (vw !== VW || vh !== VH) { VW = vw; VH = vh; OX = (VW - W) / 2; OY = VH - H; cv.width = VW * 2; cv.height = VH * 2; ctx.imageSmoothingEnabled = false; }
-  let k = Math.floor(Math.min(innerWidth / VW, innerHeight / VH));
-  const s = Math.min(innerWidth / VW, innerHeight / VH);   // enche a janela (escala não inteira); k só serve para as linhas CRT
+  let k = Math.floor(Math.min(vpW() / VW, vpH() / VH));
+  const s = Math.min(vpW() / VW, vpH() / VH);   // enche a janela (escala não inteira); k só serve para as linhas CRT
   cv.style.width = Math.round(VW * s) + "px"; cv.style.height = Math.round(VH * s) + "px";
   CRT_KK = Math.max(1, k);
   estiloCRT();
 }
 addEventListener("resize", resize); resize();
+if (window.visualViewport) visualViewport.addEventListener("resize", resize);
+addEventListener("orientationchange", () => setTimeout(resize, 250));
+{ let uw = 0, uh = 0; setInterval(() => { if (vpW() !== uw || vpH() !== uh) { uw = vpW(); uh = vpH(); resize(); if (window.__fit) window.__fit(); } }, 400); }
 function estiloCRT() {
   const kk = CRT_KK, vig = (a) => `radial-gradient(ellipse at center, rgba(0,0,0,0) 55%, rgba(0,0,0,${a}) 100%)`;
   if (crtMode === 1) crtEl.style.background = vig(.45) + `,repeating-linear-gradient(to bottom, rgba(0,0,0,0) 0, rgba(0,0,0,0) ${kk * 0.62}px, rgba(0,0,0,.32) ${kk * 0.62}px, rgba(0,0,0,.32) ${kk}px)`;

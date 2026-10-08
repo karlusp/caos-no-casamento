@@ -10,10 +10,11 @@
   function fit() {
     const vw = typeof VW !== "undefined" ? VW : 384;   // largura visivel do jogo (game.js): estende-se em ecras mais largos
     const vh = typeof VH !== "undefined" ? VH : 224;
-    let s = Math.min(innerWidth / vw, innerHeight / vh);
+    let s = Math.min(vpW() / vw, vpH() / vh);
     cv.style.width = Math.floor(vw * s) + "px"; cv.style.height = Math.floor(vh * s) + "px";
     document.getElementById("crt").style.width = cv.style.width; document.getElementById("crt").style.height = cv.style.height;
   }
+  window.__fit = fit; if (window.visualViewport) visualViewport.addEventListener("resize", fit);
   addEventListener("resize", fit); addEventListener("orientationchange", () => setTimeout(fit, 200)); fit();
   if (!touch) return;
   // ---- barras laterais (ecrãs mais largos que 16:9): em vez de preto, um reflexo desfocado do jogo ----
