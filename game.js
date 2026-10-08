@@ -8,8 +8,8 @@
 const W = 384, H = 224, GROUND = 190, WORLD = 2600;
 // Largura visivel (VW): a altura e fixa e, em ecras mais largos, mostra-se mais cenario nas laterais (ate VWMAX).
 // OX = pixeis extra de cada lado. Todo o desenho usa o 'palco' de 384 px centrado (translate OX); o jogo estende o cenario.
-const VWMAX = 496;
-let VW = 384, OX = 0;
+const VWMAX = 496, VHMAX = 288;
+let VW = 384, VH = 224, OX = 0, OY = 0;   // OY = pixeis extra em cima (ecras mais altos que 16:9, ex. iPad)
 const cv = document.getElementById("c");
 cv.width = 768; cv.height = 448;      // resolução interna 2x
 const ctx = cv.getContext("2d");
@@ -110,10 +110,12 @@ function resize() {
   const asp = innerWidth > 0 && innerHeight > 0 ? innerWidth / innerHeight : W / H;
   let vw = Math.round(Math.min(VWMAX, Math.max(W, H * asp)));
   vw -= vw % 2;
-  if (vw !== VW) { VW = vw; OX = (VW - W) / 2; cv.width = VW * 2; ctx.imageSmoothingEnabled = false; }
-  let k = Math.floor(Math.min(innerWidth / VW, innerHeight / H));
-  const s = Math.min(innerWidth / VW, innerHeight / H);   // enche a janela (escala não inteira); k só serve para as linhas CRT
-  cv.style.width = Math.round(VW * s) + "px"; cv.style.height = Math.round(H * s) + "px";
+  let vh = asp < W / H ? Math.round(Math.min(VHMAX, Math.max(H, W / asp))) : H;
+  vh -= vh % 2;
+  if (vw !== VW || vh !== VH) { VW = vw; VH = vh; OX = (VW - W) / 2; OY = VH - H; cv.width = VW * 2; cv.height = VH * 2; ctx.imageSmoothingEnabled = false; }
+  let k = Math.floor(Math.min(innerWidth / VW, innerHeight / VH));
+  const s = Math.min(innerWidth / VW, innerHeight / VH);   // enche a janela (escala não inteira); k só serve para as linhas CRT
+  cv.style.width = Math.round(VW * s) + "px"; cv.style.height = Math.round(VH * s) + "px";
   CRT_KK = Math.max(1, k);
   estiloCRT();
 }
@@ -243,10 +245,25 @@ function floorBelow(x, y) {
   }
   return f;
 }
+const CEU_CACHE = new Map();
+function ceuExtra(img, sx, sw, x, w) {   // prolonga o céu para cima (ecrãs altos): cor suave da linha de cima da imagem, escurecida para o topo
+  if (OY <= 0) return;
+  let c = CEU_CACHE.get(img);
+  if (!c) {   // 24 amostras da faixa superior (média de 6 linhas), depois alargadas com suavização
+    c = document.createElement("canvas"); c.width = 24; c.height = 1;
+    const cx = c.getContext("2d"); cx.imageSmoothingEnabled = true; cx.drawImage(img, 0, 0, img.width, 12, 0, 0, 24, 1);
+    CEU_CACHE.set(img, c);
+  }
+  ctx.imageSmoothingEnabled = true;
+  ctx.drawImage(c, x, -OY, w, OY + 1);
+  ctx.imageSmoothingEnabled = false;
+  const g = ctx.createLinearGradient(0, -OY, 0, 0); g.addColorStop(0, "rgba(10,6,24,.5)"); g.addColorStop(1, "rgba(10,6,24,0)");
+  ctx.fillStyle = g; ctx.fillRect(x, -OY, w, OY);
+}
 function fundoLargo(img, bx) {   // fundo largo repetido para cobrir -OX .. W+OX
   const L = img.width / 2; let x = bx;
   while (x > -OX) x -= L;
-  for (; x < W + OX; x += L) di(img, Math.round(x), 0);
+  for (; x < W + OX; x += L) { di(img, Math.round(x), 0); ceuExtra(img, 0, img.width / 2, Math.round(x), img.width / 2); }
 }
 function drawCasario(off) {
   let o = -((off) % 1024);
@@ -865,7 +882,7 @@ function drawBackground() {
     const bg = IMG[wd_.bg], L = bg.width / 2;
     let bx = -((G.cam * 0.12) % L);
     while (bx > -OX) bx -= L;
-    for (let x = bx; x < W + OX; x += L) di(bg, hp(x), 0);
+    for (let x = bx; x < W + OX; x += L) { di(bg, hp(x), 0); ceuExtra(bg, 0, L, hp(x), L); }
     drawGround(wd_, G.cam);
     return;
   }
@@ -1150,6 +1167,7 @@ function drawBubbles() {
 
 function drawHUD() {
   const hi = Math.max(melhorPontuacao(), ...G.players.map(p => p.score));
+  ctx.save(); ctx.translate(0, -OY);   // HUD no topo do ecrã
   text("HI-SCORE", W / 2, 2, "#ff9bb0", 1, "center");
   text(pad6(hi), W / 2, 14, "#fff", 1, "center");
   G.players.forEach((p, k) => {
@@ -1162,6 +1180,7 @@ function drawHUD() {
     for (let b = 0; b < p.charges; b++) spr(IMG.itens, 16, 0, 16, 16, tx - 2 + b * 10, 28, false, 1, 0, 0.75);
     spr(IMG.itens, 32, 0, 16, 16, tx + 52, 28, false, 1, 0, 0.75); text((p.items.cartao % 5) + "/5", tx + 66, 30, "#ffe27a", 1, "left");
   });
+  ctx.restore();
   if (G.msgT > 0 && !G.bossMsg) {
     const a = Math.min(1, G.msgT / 40);
     ctx.globalAlpha = a; text(WORLDS[G.world].name, W / 2, 50, "#ffe27a", 2, "center"); text(WORLDS[G.world].sub, W / 2, 72, "#fff", 1, "center"); ctx.globalAlpha = 1;
@@ -1219,7 +1238,7 @@ function drawIntro() {
   fundoLargo(IMG.fundo_casamento_dia, bx);
   if (w > 0) { ctx.globalAlpha = w; fundoLargo(IMG.fundo_guimaraes, bx); ctx.globalAlpha = 1; }
   drawGround(WORLDS[0], 0);
-  if (w > 0) { ctx.fillStyle = `rgba(40,20,70,${w * 0.22})`; ctx.fillRect(-OX, 0, VW, H); }
+  if (w > 0) { ctx.fillStyle = `rgba(40,20,70,${w * 0.22})`; ctx.fillRect(-OX, -OY, VW, VH); }
 
   const sway = (i) => w * (blown ? 0 : Math.sin(t * 9 + i) * 3);
   // personagens do casamento (as folhas olham para a direita; flip = olhar para a esquerda)
@@ -1332,7 +1351,7 @@ function fimDePartida() {
 function drawFundoTitulo() {
   fundoLargo(IMG.fundo_guimaraes, -18 - (Math.sin(phaseT * 0.004) + 1) * 12);
   drawGround(WORLDS[0], phaseT * 0.15);
-  ctx.fillStyle = "rgba(10,6,24,.78)"; ctx.fillRect(-OX, 0, VW, H);
+  ctx.fillStyle = "rgba(10,6,24,.78)"; ctx.fillRect(-OX, -OY, VW, VH);
 }
 function drawIniciais() {
   const m = menuInput(), t = phaseT, e = INI.fila[INI.i];
@@ -1394,7 +1413,7 @@ function drawTitle() {
   const m = menuInput();
   fundoLargo(IMG.fundo_guimaraes, -18 - (Math.sin(phaseT * 0.004) + 1) * 12);
   drawGround(WORLDS[0], phaseT * 0.15);
-  ctx.fillStyle = "rgba(10,6,24,.3)"; ctx.fillRect(-OX, 0, VW, 100);
+  ctx.fillStyle = "rgba(10,6,24,.3)"; ctx.fillRect(-OX, -OY, VW, 100 + OY);
   shadow(62, GROUND, 14); shadow(322, GROUND, 14);
   actor("carlos", 0, "idle", phaseT / 12, 62, GROUND, false);
   actor("francisco", 0, "idle", phaseT / 12, 322, GROUND, true);
@@ -1435,7 +1454,7 @@ function drawSelect() {
   const m = menuInput();
   fundoLargo(IMG.fundo_guimaraes, -18 - (Math.sin(phaseT * 0.004) + 1) * 12);
   drawGround(WORLDS[0], phaseT * 0.15);
-  ctx.fillStyle = "rgba(10,6,24,.72)"; ctx.fillRect(-OX, 0, VW, H);
+  ctx.fillStyle = "rgba(10,6,24,.72)"; ctx.fillRect(-OX, -OY, VW, VH);
   text(numPlayers === 1 ? "ESCOLHE A PERSONAGEM" : "JOGADOR 1: ESCOLHE A PERSONAGEM", W / 2, 8, "#ffe27a", 1, "center");
   ["carlos", "francisco"].forEach((ch, i) => {
     const x = 66 + i * 160, sel = selIdx === i;
@@ -1476,9 +1495,9 @@ function drawGameOver() {
   const m = menuInput(), t = phaseT;
   fundoLargo(IMG.fundo_guimaraes, -18 - (Math.sin(t * 0.004) + 1) * 12);
   drawGround(WORLDS[0], t * 0.15);
-  ctx.fillStyle = "rgba(10,6,24,.72)"; ctx.fillRect(-OX, 0, VW, H);
+  ctx.fillStyle = "rgba(10,6,24,.72)"; ctx.fillRect(-OX, -OY, VW, VH);
   // raios
-  if (((t >> 4) % 5) === 0) { ctx.fillStyle = "rgba(220,230,255,.18)"; ctx.fillRect(-OX, 0, VW, H); }
+  if (((t >> 4) % 5) === 0) { ctx.fillStyle = "rgba(220,230,255,.18)"; ctx.fillRect(-OX, -OY, VW, VH); }
   // o tufão vencedor, à direita
   shadow(310, GROUND, 18, 0.4);
   enemySpr({ type: "supertufao", x: 310, y: GROUND }, "idle", t / 8, false, 1.15);
@@ -1503,8 +1522,8 @@ function drawGameOver() {
 
 function drawClear() {
   const m = menuInput();
-  ctx.fillStyle = "#12081c"; ctx.fillRect(-OX, 0, VW, H);
-  for (let y = 0; y < H; y += 8) { ctx.fillStyle = (y / 8) % 2 ? "#1c1238" : "#161030"; ctx.fillRect(-OX, y, VW, 8); }
+  ctx.fillStyle = "#12081c"; ctx.fillRect(-OX, -OY, VW, VH);
+  for (let y = -8 * Math.ceil(OY / 8); y < H; y += 8) { ctx.fillStyle = (y / 8) % 2 ? "#1c1238" : "#161030"; ctx.fillRect(-OX, y, VW, 8); }
   text("PROTÓTIPO COMPLETO!", W / 2, 24, "#ffe27a", 2, "center");
   text("RECUPERASTE AS PEÇAS ATÉ AQUI.", W / 2, 54, "#fff", 1, "center");
   text("FALTA O RESTO DO MATERIAL...", W / 2, 68, "#c9c0e8", 1, "center");
@@ -1580,7 +1599,7 @@ function drawSelfie() {
   if (t > 190 && t < 290) bubbleAt(two || mine === "carlos" ? "FRANCISCO!!" : "ATENÇÃO!", cx, GROUND - 82);
   if (SF.photo > 0) {
     SF.photo--; ctx.fillStyle = "#fff";
-    ctx.fillRect(-OX, 0, VW, 6); ctx.fillRect(-OX, 0, 6, H); ctx.fillRect(W + OX - 6, 0, 6, H); ctx.fillRect(-OX, H - 22, VW, 22);
+    ctx.fillRect(-OX, -OY, VW, 6); ctx.fillRect(-OX, -OY, 6, VH); ctx.fillRect(W + OX - 6, -OY, 6, VH); ctx.fillRect(-OX, H - 22, VW, 22);
   }
   if (t > 280 && ((t >> 5) & 1)) text("PRIME ENTER", W / 2, 100, "#ffe27a", 1, "center");
   if (m.ok && t > 200) { if (G.world >= IMPLEMENTED - 1) startFinal(); else startInterlude(); }
@@ -1608,8 +1627,8 @@ function keycap(x, y, label) {
 }
 function drawRegras() {
   const m = menuInput(), t = phaseT;
-  ctx.fillStyle = "#12081c"; ctx.fillRect(-OX, 0, VW, H);
-  for (let y = 0; y < H; y += 8) { ctx.fillStyle = (y / 8) % 2 ? "#1c1238" : "#161030"; ctx.fillRect(-OX, y, VW, 8); }
+  ctx.fillStyle = "#12081c"; ctx.fillRect(-OX, -OY, VW, VH);
+  for (let y = -8 * Math.ceil(OY / 8); y < H; y += 8) { ctx.fillStyle = (y / 8) % 2 ? "#1c1238" : "#161030"; ctx.fillRect(-OX, y, VW, 8); }
   const titles = ["OBJECTIVO E COMANDOS", "ITENS E VIDAS", "OS GOLPES"];
   text(titles[REG.page], W / 2, 8, "#ffe27a", 2, "center");
   const ICON_K = { 0: 0.8 };   // a lente enche o quadrado todo e parece maior que os outros: encolhe-a um pouco só neste ecrã
@@ -1624,10 +1643,17 @@ function drawRegras() {
       rows.forEach(([keys, what], k) => { let cx = x; keys.forEach(kk => { cx += keycap(cx, 130 + k * 17, kk) + 3; }); text(what, x + 84, 131 + k * 17, "#fff", 1, "left"); });
     };
 if (window.TOQUE) {
-      text("CONTROLOS NO ECRÃ", W / 2, 116, "#ffe27a", 1, "center");
-      [["< >", "MOVER (À ESQUERDA)"], ["A", "SALTAR"], ["B", "GOLPE"], ["C", "ESPECIAL (GASTA UMA BATERIA)"]].forEach(([k, w], n) => {
-        keycap(W / 2 - 130, 130 + n * 17, k); text(w, W / 2 - 130 + 52, 131 + n * 17, "#fff", 1, "left");
-      });
+      text("CONTROLOS NO ECRÃ", W / 2, 112, "#ffe27a", 1, "center");
+      const bot = (cx, cy, lab) => {   // botão redondo como os do ecrã tátil
+        ctx.beginPath(); ctx.arc(cx, cy, 9, 0, 7); ctx.fillStyle = "rgba(255,255,255,.16)"; ctx.fill(); ctx.lineWidth = 1.5; ctx.strokeStyle = "rgba(255,255,255,.7)"; ctx.stroke();
+        ctx.fillStyle = "#fff";
+        if (lab === "<") { ctx.beginPath(); ctx.moveTo(cx - 4, cy); ctx.lineTo(cx + 3, cy - 5); ctx.lineTo(cx + 3, cy + 5); ctx.fill(); }
+        else if (lab === ">") { ctx.beginPath(); ctx.moveTo(cx + 4, cy); ctx.lineTo(cx - 3, cy - 5); ctx.lineTo(cx - 3, cy + 5); ctx.fill(); }
+        else text(lab, cx, cy - 3, "#fff", 1, "center");
+      };
+      const x0 = W / 2 - 120;
+      bot(x0, 140, "<"); bot(x0 + 24, 140, ">"); text("ANDAR (BOTÕES À ESQUERDA)", x0 + 48, 137, "#fff", 1, "left");
+      [["A", "SALTAR"], ["B", "GOLPE"], ["C", "ESPECIAL (GASTA UMA BATERIA)"]].forEach(([k, w], n) => { bot(x0 + 12, 162 + n * 22 - 6, k); text(w, x0 + 48, 159 + n * 22 - 6, "#fff", 1, "left"); });
     } else {
         col(14, "JOGADOR 1", [[["<", ">"], "MOVER"], [["Z"], "SALTAR"], [["X"], "GOLPE"], [["C"], "ESPECIAL"]], "#ffe27a");
       col(206, "JOGADOR 2", [[["A", "D"], "MOVER"], [["W"], "SALTAR"], [["F"], "GOLPE"], [["G"], "ESPECIAL"]], "#9be59b");
@@ -1685,7 +1711,7 @@ function startFinal() { FIN = { line: 0, lt: 0, photo: 0, credits: 0 }; music("n
 function drawFinal() {
   const m = menuInput(), t = phaseT;
   const wasW = G.world, wasC = G.cam; G.world = 0; G.cam = 120; drawBackground(); G.world = wasW; G.cam = wasC;
-  ctx.fillStyle = "rgba(255,170,90,.10)"; ctx.fillRect(-OX, 0, VW, H);
+  ctx.fillStyle = "rgba(255,170,90,.10)"; ctx.fillRect(-OX, -OY, VW, VH);
   const done = FIN.line >= FIN_LINES.length;
   if (!done) {
     FIN.lt++;
@@ -1721,12 +1747,12 @@ function drawFinal() {
   }
   if (FIN.photo > 0) {
     FIN.photo--; ctx.fillStyle = "#fff";
-    ctx.fillRect(-OX, 0, VW, 8); ctx.fillRect(-OX, 0, 8, H); ctx.fillRect(W + OX - 8, 0, 8, H); ctx.fillRect(-OX, H - 26, VW, 26);
+    ctx.fillRect(-OX, -OY, VW, 8); ctx.fillRect(-OX, -OY, 8, VH); ctx.fillRect(W + OX - 8, -OY, 8, VH); ctx.fillRect(-OX, H - 26, VW, 26);
   }
   if (done) {
     FIN.credits++;
     const a = Math.min(1, FIN.credits / 90);
-    ctx.fillStyle = "rgba(18,8,28," + (0.82 * a) + ")"; ctx.fillRect(-OX, 0, VW, H);
+    ctx.fillStyle = "rgba(18,8,28," + (0.82 * a) + ")"; ctx.fillRect(-OX, -OY, VW, VH);
     ctx.globalAlpha = a;
     text("FIM", W / 2, 22, "#ffe27a", 4, "center");
     text("CAOS NO CASAMENTO", W / 2, 66, "#fff", 2, "center");
@@ -1750,6 +1776,7 @@ function drawInterlude() {
     ctx.save(); ctx.translate(2 * W, 0); ctx.scale(-1, 1); di(IMG.mapa_pl, 0, 0); ctx.restore();
     ctx.fillStyle = "rgba(10,6,24,.5)"; ctx.fillRect(-OX, 0, OX, H); ctx.fillRect(W, 0, OX, H);
   }
+  if (OY > 0) { ctx.save(); ctx.scale(1, -1); di(IMG.mapa_pl, 0, 0); ctx.restore(); ctx.fillStyle = "rgba(10,6,24,.5)"; ctx.fillRect(-OX, -OY, VW, OY); }
   di(IMG.mapa_pl, 0, 0);
   const pts = WORLDS.map((w, k) => { const [px, py] = mapXY2(w.lon, w.lat); return [Math.round(px + (k === 5 ? 5 : 0)), Math.round(py + (k === 5 ? 4 : 0))]; });
   // percurso (pontos)
@@ -1802,8 +1829,8 @@ function drawInterlude() {
    LOOP PRINCIPAL
    ============================================================ */
 function drawBoot() {
-  ctx.fillStyle = "#12081c"; ctx.fillRect(-OX, 0, VW, H);
-  for (let y = 0; y < H; y += 8) { ctx.fillStyle = (y / 8) % 2 ? "#1c1238" : "#161030"; ctx.fillRect(-OX, y, VW, 8); }
+  ctx.fillStyle = "#12081c"; ctx.fillRect(-OX, -OY, VW, VH);
+  for (let y = -8 * Math.ceil(OY / 8); y < H; y += 8) { ctx.fillStyle = (y / 8) % 2 ? "#1c1238" : "#161030"; ctx.fillRect(-OX, y, VW, 8); }
   const b = Math.sin(phaseT * 0.05) * 2;
   text("CAOS NO", W / 2, 44 + b, "#ffe27a", 4, "center");
   text("CASAMENTO", W / 2, 78 + b, "#ff9bb0", 4, "center");
@@ -1834,7 +1861,7 @@ function render() {
   ctx.setTransform(2, 0, 0, 2, 0, 0);
   ctx.imageSmoothingEnabled = false;
   ctx.save();
-  ctx.translate(OX, 0);
+  ctx.translate(OX, OY);
   if (shake > 0) { ctx.translate(Math.round(rnd(-1, 1) * Math.min(shake, 6)), Math.round(rnd(-1, 1) * Math.min(shake, 6))); shake--; }
   switch (phase) {
     case "boot": drawBoot(); break;
@@ -1859,7 +1886,7 @@ function render() {
         const pm = menuInput(); pauseT++;
         const opcoes = window.TOQUE ? ["CONTINUAR"] : ["CONTINUAR", "SAIR DO JOGO"];
         if (pm.up || pm.down) { pauseSel = (pauseSel + (pm.down ? 1 : opcoes.length - 1)) % opcoes.length; sfx("blip", .3); }
-        ctx.fillStyle = "rgba(10,6,24,.62)"; ctx.fillRect(-OX, 0, VW, H);
+        ctx.fillStyle = "rgba(10,6,24,.62)"; ctx.fillRect(-OX, -OY, VW, VH);
         const ph = window.TOQUE ? 62 : 86;
         ctx.fillStyle = "rgba(10,6,24,.85)"; ctx.fillRect(W / 2 - 90, 70, 180, ph); ctx.strokeStyle = "#ffe27a"; ctx.lineWidth = 1; ctx.strokeRect(W / 2 - 89.5, 70.5, 179, ph - 1);
         text("PAUSA", W / 2, 80, "#ffe27a", 3, "center");
@@ -1886,7 +1913,7 @@ function render() {
     case "placar": drawPlacar(); break;
   }
   ctx.restore();
-  if (whiteFlash > 0) { ctx.fillStyle = `rgba(255,255,255,${Math.min(1, whiteFlash / 10)})`; ctx.fillRect(0, 0, VW, H); whiteFlash--; }
+  if (whiteFlash > 0) { ctx.fillStyle = `rgba(255,255,255,${Math.min(1, whiteFlash / 10)})`; ctx.fillRect(0, 0, VW, VH); whiteFlash--; }
 }
 
 let last = performance.now(), acc = 0;

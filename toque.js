@@ -9,8 +9,9 @@
   // ---- escala: ocupa o ecrã todo (mantém a proporção 768x448) ----
   function fit() {
     const vw = typeof VW !== "undefined" ? VW : 384;   // largura visivel do jogo (game.js): estende-se em ecras mais largos
-    let s = Math.min(innerWidth / vw, innerHeight / 224);
-    cv.style.width = Math.floor(vw * s) + "px"; cv.style.height = Math.floor(224 * s) + "px";
+    const vh = typeof VH !== "undefined" ? VH : 224;
+    let s = Math.min(innerWidth / vw, innerHeight / vh);
+    cv.style.width = Math.floor(vw * s) + "px"; cv.style.height = Math.floor(vh * s) + "px";
     document.getElementById("crt").style.width = cv.style.width; document.getElementById("crt").style.height = cv.style.height;
   }
   addEventListener("resize", fit); addEventListener("orientationchange", () => setTimeout(fit, 200)); fit();
