@@ -105,10 +105,11 @@ const lsGet = (k, d) => { try { const v = localStorage.getItem(k); return v ? JS
 const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* sem armazenamento */ } };
 /* ---------------- escala / CRT ---------------- */
 let CRT_KK = 1;
-let crtMode = lsGet("caos_crt", 1) === 0 ? 0 : 1;   // só há "sem linhas" e "linhas"
+let crtMode = lsGet("caos_crt", (window.matchMedia && matchMedia("(pointer: coarse)").matches) || "ontouchstart" in window ? 0 : 1) === 0 ? 0 : 1;   // em ecrãs tácteis as linhas CRT começam desligadas (pesam no iPad)   // só há "sem linhas" e "linhas"
 // area visivel real (no iPad/Safari o innerHeight engana quando as barras do browser mudam)
-const vpW = () => Math.round((window.visualViewport && visualViewport.width) || innerWidth);
-const vpH = () => Math.round((window.visualViewport && visualViewport.height) || innerHeight);
+// (com zoom por pinça o visualViewport encolhe: nesse caso usa-se a janela de layout = largura x escala)
+const vpW = () => Math.round(window.visualViewport ? visualViewport.width * visualViewport.scale : innerWidth) || innerWidth;
+const vpH = () => Math.round(window.visualViewport ? visualViewport.height * visualViewport.scale : innerHeight) || innerHeight;
 function resize() {
   const asp = vpW() > 0 && vpH() > 0 ? vpW() / vpH() : W / H;
   let vw = Math.round(Math.min(VWMAX, Math.max(W, H * asp)));

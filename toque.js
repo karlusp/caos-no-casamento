@@ -23,7 +23,13 @@
   document.body.insertBefore(bgc, document.body.firstChild);
   wrap.style.zIndex = "1";
   const bctx = bgc.getContext("2d");
-  setInterval(() => { try { bctx.drawImage(cv, 0, 0, 64, 32); } catch (e) { /* ignora */ } }, 80);
+  // o reflexo desfocado só é preciso (e só se desenha) quando sobram faixas à volta do jogo; senão pesa muito no iPad
+  setInterval(() => {
+    const r = cv.getBoundingClientRect(), sobra = innerWidth - r.width > 24 || innerHeight - r.height > 24;
+    bgc.style.display = sobra ? "block" : "none";
+    if (!sobra) return;
+    try { bctx.drawImage(cv, 0, 0, 64, 32); } catch (e) { /* ignora */ }
+  }, 120);
   document.addEventListener("contextmenu", e => e.preventDefault());
   document.addEventListener("gesturestart", e => e.preventDefault());
   // iPad/iPhone (Safari ignora user-scalable=no): sem zoom por toque duplo, pinça ou arrastar
